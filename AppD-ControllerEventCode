@@ -1,0 +1,126 @@
+#set($controllerName="appd-hostname")
+{
+"records":[
+#foreach(${event} in ${fullEventList})
+
+    #foreach(${entity} in ${event.affectedEntities})
+    #if($foreach.index > 0)
+    ,
+    #end
+    {
+    "source": "AppDynamics"
+    ,"event_class": "$controllerName"
+        #if( $entity.entityTypeDisplayName == "Node" )
+        ,"node": "$entity.name"
+        , "resource": "$entity.name"
+        #set( $messageKey="${controllerName}_${event.application.name}_${event.tier.name}_${entity.name}")
+        #elseif( $entity.entityTypeDisplayName == "Tier" )
+        ,"node": "$entity.name"
+        , "resource": "$entity.name"
+        #set( $messageKey="${controllerName}_${event.application.name}_${entity.name}")
+        #elseif( $entity.entityTypeDisplayName == "Application" )
+        ,"node": "$entity.name"
+        , "resource": "$entity.name"
+        #set( $messageKey="${controllerName}_${event.application.name}")
+        #elseif( $entity.entityTypeDisplayName == "Business Transaction" )
+        ,"resource": "${entity.entityTypeDisplayName}_${entity.name}"
+        ,"node": "$event.tier.name"
+        #set( $messageKey="${controllerName}_${event.application.name}_${event.tier.name}_${entity.entityTypeDisplayName}_${entity.name}")
+        #elseif( $entity.entityTypeDisplayName == "Service Endpoint" )
+        ,"resource": "${entity.entityTypeDisplayName}_${entity.name}"
+        ,"node": "$event.tier.name"
+        #set( $messageKey="${controllerName}_${event.application.name}_${event.tier.name}_${entity.entityTypeDisplayName}_${entity.name}")
+        #elseif( $entity.entityTypeDisplayName == "Backend" )
+        ,"resource": "${entity.entityTypeDisplayName}_${entity.name}"
+        ,"node": "$entity.name"
+        #set( $messageKey="${controllerName}_${event.application.name}_${entity.entityTypeDisplayName}_${entity.name}")
+        #else
+            #if($event.node)
+                ,"resource": "${entity.entityTypeDisplayName}_${entity.name}"
+                ,"node": "$event.node.name"
+                #set( $messageKey="${controllerName}_${event.application.name}_${event.tier.name}_${event.node.name}")
+            #elseif($event.tier)
+                , "resource": "${entity.entityTypeDisplayName}_${entity.name}"
+                ,"node": "$event.tier.name"
+                #set( $messageKey="${controllerName}_${event.application.name}_${event.tier.name}")
+            #elseif($event.application)
+                , "resource": "${entity.entityTypeDisplayName}_${entity.name}"
+                ,"node": "$event.application.name"
+                #set( $messageKey="${controllerName}_${event.application.name}")
+            #else
+                , "node": "$entity.name"
+                , "resource": "${entity.entityTypeDisplayName}_${entity.name}"
+                #set( $messageKey="${controllerName}_${entity.entityTypeDisplayName}_${entity.name}")
+            #end
+        #end
+        #if($event.healthRule)
+            ,"metric_name" : "$event.healthRule.name"
+            ,"message_key":"${messageKey}_${event.healthRule.name}"
+            #set( $msg=$event.healthRule.name)
+        #else
+            ,"message_key":"${messageKey}_${event.displayName}"
+            #set( $msg="")
+        #end
+        #set( $msg=$msg + ". " + ${event.eventMessage})
+        #set( $msg = $msg.replace("<b>", "") )
+        #set( $msg = $msg.replace("</b>", "") )
+        #set( $msg = $msg.replace("<br>", "") )
+        ,"description" : "${msg}. The event url is ${event.deepLink}"
+        ,"type": "${entity.entityTypeDisplayName}"
+        #if($event.eventType == "POLICY_OPEN_WARNING"
+            || $event.eventType == "POLICY_CONTINUES_WARNING"
+            || $event.eventType == "POLICY_DOWNGRADED"
+            || $event.eventType == "EUM_CLOUD_SYNTHETIC_PERF_WARNING_EVENT"
+            || $event.eventType == "EUM_CLOUD_SYNTHETIC_WARNING_EVENT"
+            || $event.eventType == "EUM_CLOUD_SYNTHETIC_PERF_CONFIRMED_WARNING_EVENT"
+            || $event.eventType == "EUM_CLOUD_SYNTHETIC_CONFIRMED_WARNING_EVENT"
+            || $event.eventType == "EUM_CLOUD_SYNTHETIC_ONGOING_WARNING_EVENT"
+            || $event.eventType == "EUM_CLOUD_SYNTHETIC_PERF_CONFIRMED_WARNING_EVENT"
+            || $event.eventType == "EUM_CLOUD_SYNTHETIC_PERF_ONGOING_WARNING_EVENT")
+            ,"severity": "2"
+        #elseif($event.eventType == "POLICY_OPEN_CRITICAL"
+            || $event.eventType == "POLICY_CONTINUES_CRITICAL"
+            || $event.eventType == "POLICY_UPGRADED"
+            || $event.eventType == "EUM_CLOUD_SYNTHETIC_PERF_CRITICAL_EVENT"
+            || $event.eventType == "EUM_CLOUD_SYNTHETIC_PERF_CONFIRMED_CRITICAL_EVENT"
+            || $event.eventType == "EUM_CLOUD_SYNTHETIC_PERF_ONGOING_CRITICAL_EVENT"
+            || $event.eventType == "EUM_CLOUD_SYNTHETIC_ERROR_EVENT"
+            || $event.eventType == "EUM_CLOUD_SYNTHETIC_CONFIRMED_ERROR_EVENT"
+            || $event.eventType == "EUM_CLOUD_SYNTHETIC_ONGOING_ERROR_EVENT")
+            ,"severity": "1"
+        #elseif($event.eventType == "POLICY_CLOSE_WARNING"
+            || $event.eventType == "POLICY_CLOSE_CRITICAL"
+            || $event.eventType == "CLOSE"
+            || $event.eventType == "POLICY_CANCELED_WARNING"
+            || $event.eventType == "POLICY_CANCELED_CRITICAL"
+            || $event.eventType == "EUM_CLOUD_SYNTHETIC_HEALTHY_EVENT"
+            || $event.eventType == "EUM_CLOUD_SYNTHETIC_PERF_HEALTHY_EVENT")
+            ,"severity": "0"
+        #elseif($event.eventType == "APPLICATION_DEPLOYMENT"
+            || $event.eventType == "APP_SERVER_RESTART"
+            || $event.eventType == "APPLICATION_CONFIG_CHANGE"
+            || $event.eventType == "APPLICATION_DISCOVERED"
+            || $event.eventType == "TIER_DISCOVERED"
+            || $event.eventType == "NODE_DISCOVERED"
+            || $event.eventType == "MACHINE_DISCOVERED"
+            || $event.eventType == "BT_DISCOVERED"
+            || $event.eventType == "SERVICE_ENDPOINT_DISCOVERED"
+            || $event.eventType == "BACKEND_DISCOVERED")
+            ,"severity": "5"
+        #elseif($event.eventType == "SLOW"
+            || $event.eventType == "VERY_SLOW"
+            || $event.eventType == "STALL"
+            || $event.eventType == "APPLICATION_ERROR"
+            || $event.eventType == "ERROR"
+            || $event.eventType == "DEADLOCK"
+            || $event.eventType == "RESOURCE_POOL_LIMIT"
+            || $event.eventType == "APPLICATION_CRASH"
+            || $event.eventType == "CLR_CRASH"
+            || $event.eventType == "AGENT_CONFIGURATION_ERROR")
+            ,"severity": "1"
+        #end
+    }
+    #end
+#end
+]
+}
